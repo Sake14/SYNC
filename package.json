@@ -1,7 +1,10 @@
 {
   "name": "sync",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "version": "1.0.0",
   "description": "A real-time synchronized music listening platform built from scratch for GUAP IT Hackathon 2026.",
   "main": "index.js",
@@ -19,5 +22,9 @@
   "bugs": {
     "url": "https://github.com/Sake14/SYNC/issues"
   },
-  "homepage": "https://github.com/Sake14/SYNC#readme"
+  "homepage": "https://github.com/Sake14/SYNC#readme",
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3"
+  }
 }
