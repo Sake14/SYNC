@@ -9,7 +9,8 @@
   "description": "A real-time synchronized music listening platform built from scratch for GUAP IT Hackathon 2026.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run build -w @sync/shared && vitest run",
+    "media:demo": "node scripts/generate-demo.mjs"
   },
   "repository": {
     "type": "git",
@@ -25,6 +26,7 @@
   "homepage": "https://github.com/Sake14/SYNC#readme",
   "devDependencies": {
     "@types/node": "^22.20.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
   }
 }

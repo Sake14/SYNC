@@ -26,3 +26,7 @@ coverage/
 /apps/server/data/
 /apps/server/uploads/
 /apps/server/music/
+
+/media/*
+!/media/README.md
+/.data/
