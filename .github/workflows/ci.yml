@@ -43,7 +43,8 @@ jobs:
           path: test-results/
           retention-days: 7
   deployment:
-    needs: check
+    # Ephemeral container validation is independent of the host-browser job.
+    # This job never publishes to a production server.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -55,6 +56,13 @@ jobs:
       - run: npm ci
       - run: npm run media:demo && npm run build -w @sync/shared
       - run: npx playwright install --with-deps chromium
+      - name: Provide a Linux audio output for container browser tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pulseaudio
+          pulseaudio --start --exit-idle-time=-1 --log-target=stderr
+          pactl load-module module-null-sink sink_name=sync_ci rate=48000 channels=2
+          pactl set-default-sink sync_ci
       - run: docker compose --env-file .env.example -f docker-compose.yml build server
       - run: docker compose --env-file .env.example -f docker-compose.yml build web
       - run: docker compose --env-file .env.example -f docker-compose.yml up -d --wait --wait-timeout 180

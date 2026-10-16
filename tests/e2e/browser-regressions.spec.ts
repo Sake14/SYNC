@@ -356,9 +356,19 @@ test("OS-managed volume is not rewritten during playback; Apple output keeps nat
   await expect(page.getByRole("slider", { name: "Громкость", exact: true })).toBeDisabled();
   await play(page, [page]);
   const writes = await page.locator("audio").getAttribute("data-volume-writes");
-  // Measure steady decoder progress after startup, rather than counting the
-  // output startup latency as a change of playback speed.
+  // currentTime can cross 2 s through a startup anchor correction. Wait for
+  // actual decoder stability before measuring its uninterrupted clock rate.
   await expect.poll(async () => (await readAudioSnapshot(page)).time).toBeGreaterThan(2);
+  await page.locator("audio").evaluate((audio: HTMLAudioElement) => {
+    const changed = () => { audio.dataset.decoderChangedAt = String(performance.now()); };
+    for (const event of ["seeking", "seeked", "playing", "waiting", "stalled", "pause"])
+      audio.addEventListener(event, changed);
+    changed();
+  });
+  await expect.poll(() => page.locator("audio").evaluate((audio: HTMLAudioElement) =>
+    !audio.paused && !audio.seeking && audio.readyState >= 3 &&
+    performance.now() - Number(audio.dataset.decoderChangedAt) >= 4000,
+  ), { timeout: 15_000 }).toBe(true);
   const before = await readAudioSnapshot(page);
   await page.waitForTimeout(2200); // Observe beyond the decoder settling window.
   await expect(page.locator("audio")).toHaveAttribute("data-volume-writes", writes!);

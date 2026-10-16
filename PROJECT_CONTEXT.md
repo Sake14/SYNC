@@ -155,6 +155,18 @@ Vitest, production audit, Chromium E2E, browser matrix и Docker/TLS job.
 полный повтор матрицы прошёл: 28/28, Docker browser E2E — 38/38.
 Актуальный итог будет записан в docs/VERIFICATION.md.
 
+Полный перенос сохранён и отправлен в origin/main:
+1424cac2cb73b680936ba9815b12d6a16f686aae,
+feat: complete SYNC app and deployment setup. Рабочее дерево после push было чистым.
+Первый GitHub CI подтвердил базовые проверки и 38 Chromium E2E, но один
+Firefox-тест browser matrix захватил стартовую коррекцию позиции в измерении
+скорости декодера. В Linux-контейнере проблема воспроизвелась (2/3 отказа).
+Fixture теперь ждёт четыре секунды устойчивого native playback, затем сохраняет
+исходное требование >1,8 с за 2,2 с. Код приложения не менялся.
+После изменения 3/3 Linux Firefox и 4/4 целевых браузеров macOS прошли.
+CI container job дополнен PulseAudio и выполняется независимо от host-browser job.
+Результаты записаны в docs/VERIFICATION.md; текущий удалённый CI — Actions.
+
 ## Ограничения и следующий шаг
 
 Map, комнаты, токены, очередь и библиотека не переживают backend restart.
