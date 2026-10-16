@@ -1,0 +1,79 @@
+name: Validate SYNC
+on:
+  push:
+    branches: ["main", "develop", "release/**"]
+    tags: ["v*"]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm audit --omit=dev
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Provide a Linux audio output for native media tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pulseaudio
+          pulseaudio --start --exit-idle-time=-1 --log-target=stderr
+          pactl load-module module-null-sink sink_name=sync_ci rate=48000 channels=2
+          pactl set-default-sink sync_ci
+          pactl list short sinks
+      - run: npm run test:e2e
+      - run: npm run test:browsers
+      - name: Retain browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-diagnostics
+          path: test-results/
+          retention-days: 7
+  deployment:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run media:demo && npm run build -w @sync/shared
+      - run: npx playwright install --with-deps chromium
+      - run: docker compose --env-file .env.example -f docker-compose.yml build server
+      - run: docker compose --env-file .env.example -f docker-compose.yml build web
+      - run: docker compose --env-file .env.example -f docker-compose.yml up -d --wait --wait-timeout 180
+      - run: npm run test:deployment
+      - run: npm run test:docker:e2e
+      - name: Verify HTTPS and WSS with explicit local CA trust
+        run: |
+          docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.tls-test.yml up -d --wait --wait-timeout 180
+          docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.tls-test.yml cp reverse-proxy:/data/caddy/pki/authorities/local/root.crt /tmp/sync-test-ca.crt
+          SYNC_TEST_URL=https://localhost:8443 SYNC_TEST_CA=/tmp/sync-test-ca.crt npm run test:deployment
+      - name: Retain deployment browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-browser-diagnostics
+          path: test-results/docker/
+          retention-days: 7
+      - name: Stop this workflow's projects and retain volumes
+        if: always()
+        run: |
+          docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.tls-test.yml stop
+          docker compose --env-file .env.example -f docker-compose.yml stop

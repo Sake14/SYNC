@@ -1,0 +1,43 @@
+(sync_routes) {
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>headers>Authorization delete
+				request>headers>Cookie delete
+				resp_headers>Set-Cookie delete
+				request>uri regexp \?.*$ ""
+			}
+		}
+	}
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		-Server
+	}
+	# Preserve this order: without route, Caddy sorts handle before respond.
+	route {
+		# Reject declared oversize bodies before a Next.js route starts streaming.
+		@oversized expression "{http.request.header.Content-Length} != '' && int({http.request.header.Content-Length}) > {$MAX_REQUEST_BYTES}"
+		respond @oversized "Request body too large" 413
+		# Also enforce the limit on chunked/undeclared bodies as they are read.
+		request_body {
+			max_size {$MAX_REQUEST_BYTES}
+		}
+		@socket path /socket.io /socket.io/*
+		handle @socket {
+			# Caddy performs the WebSocket upgrade and maintains a duplex tunnel.
+			reverse_proxy server:4000
+		}
+		handle /health {
+			reverse_proxy server:4000
+		}
+		handle {
+			# Keep /api and /media on Next.js: it authorizes private media cookies.
+			reverse_proxy web:3000 {
+				flush_interval -1
+			}
+		}
+	}
+}

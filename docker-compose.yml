@@ -1,0 +1,119 @@
+# Local HTTP deployment. Production and local TLS use separate override files.
+name: sync-local
+
+x-runtime: &runtime
+  init: true
+  restart: unless-stopped
+  stop_grace_period: 30s
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  pids_limit: 128
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  server:
+    <<: *runtime
+    image: sync-server:${SYNC_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4000"
+      CLIENT_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      MEDIA_DIR: /app/media
+      UPLOAD_DIR: /app/.data/uploads
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-20971520}
+      MAX_ROOM_UPLOAD_BYTES: ${MAX_ROOM_UPLOAD_BYTES:-104857600}
+      MAX_STORAGE_BYTES: ${MAX_STORAGE_BYTES:-536870912}
+      MAX_ROOM_PARTICIPANTS: ${MAX_ROOM_PARTICIPANTS:-20}
+      MAX_ROOMS: ${MAX_ROOMS:-100}
+      RECONNECT_GRACE_MS: ${RECONNECT_GRACE_MS:-30000}
+      EMPTY_ROOM_TTL_MS: ${EMPTY_ROOM_TTL_MS:-300000}
+      PLAY_LEAD_MS: ${PLAY_LEAD_MS:-750}
+    expose:
+      - "4000"
+    networks:
+      - private
+    volumes:
+      - uploads:/app/.data/uploads
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    mem_limit: 512m
+    cpus: 0.75
+
+  web:
+    <<: *runtime
+    image: sync-web:${SYNC_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      NEXT_TELEMETRY_DISABLED: "1"
+      API_INTERNAL_URL: http://server:4000
+    depends_on:
+      server:
+        condition: service_healthy
+    expose:
+      - "3000"
+    networks:
+      - private
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /app/apps/web/.next/cache:uid=1000,gid=1000,size=128m,mode=0755
+    mem_limit: 1024m
+    cpus: 1.0
+
+  reverse-proxy:
+    <<: *runtime
+    image: caddy:2.11.7-alpine
+    depends_on:
+      web:
+        condition: service_healthy
+      server:
+        condition: service_healthy
+    environment:
+      MAX_REQUEST_BYTES: ${MAX_REQUEST_BYTES:-22020096}
+    ports:
+      - "${LOCAL_BIND_ADDRESS:-127.0.0.1}:${LOCAL_HTTP_PORT:-8080}:80"
+    networks:
+      - private
+      - public
+    volumes:
+      - ./deploy/caddy/local.Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/caddy/routes.caddy:/etc/caddy/routes.caddy:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_add:
+      - NET_BIND_SERVICE
+    mem_limit: 128m
+    cpus: 0.25
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+networks:
+  private:
+    internal: true
+  public:
+
+volumes:
+  uploads:
+  caddy-data:
+  caddy-config:

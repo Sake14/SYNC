@@ -1,0 +1,27 @@
+{
+	admin localhost:2019
+	skip_install_trust
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 120s
+			idle 2m
+		}
+	}
+}
+
+import /etc/caddy/routes.caddy
+
+https://localhost {
+	tls internal
+	import sync_routes
+}
+
+http://:8081 {
+	handle /health {
+		reverse_proxy web:3000 {
+			rewrite /api/health
+		}
+	}
+	respond 404
+}

@@ -30,3 +30,10 @@ coverage/
 /media/*
 !/media/README.md
 /.data/
+
+# Browser diagnostics and generated Next.js types
+playwright-report/
+test-results/
+next-env.d.ts
+*.p12
+.ssh/

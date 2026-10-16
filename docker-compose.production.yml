@@ -1,0 +1,16 @@
+# Requires Compose 2.24.4+ (!override replaces, rather than appends, local ports).
+name: sync
+services:
+  server:
+    environment:
+      CLIENT_ORIGINS: https://${SYNC_DOMAIN:?Set SYNC_DOMAIN to your public DNS hostname}
+  reverse-proxy:
+    environment:
+      SYNC_DOMAIN: ${SYNC_DOMAIN:?Set SYNC_DOMAIN to your public DNS hostname}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL to the certificate contact email}
+    ports: !override
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/caddy/production.Caddyfile:/etc/caddy/Caddyfile:ro

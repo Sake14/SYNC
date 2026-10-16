@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "lib": [
+      "ES2022",
+      "DOM"
+    ]
+  },
+  "include": [
+    "playwright*.config.ts",
+    "vitest.config.mts",
+    "tests/**/*.ts",
+    "packages/shared/src/**/*.test.ts"
+  ]
+}

@@ -1,0 +1,11 @@
+# Local TLS verification ONLY. Uses Caddy's private CA, never a public certificate.
+name: sync-tls-test
+services:
+  server:
+    environment:
+      CLIENT_ORIGINS: https://localhost:8443
+  reverse-proxy:
+    ports: !override
+      - "127.0.0.1:8443:443"
+    volumes:
+      - ./deploy/caddy/tls-test.Caddyfile:/etc/caddy/Caddyfile:ro

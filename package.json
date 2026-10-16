@@ -6,11 +6,22 @@
     "packages/*"
   ],
   "version": "1.0.0",
-  "description": "A real-time synchronized music listening platform built from scratch for GUAP IT Hackathon 2026.",
-  "main": "index.js",
+  "description": "SYNC: synchronized music listening rooms for the GUAP IT hackathon.",
   "scripts": {
+    "dev": "npm run build -w @sync/shared && concurrently -k -n shared,server,web -c yellow,cyan,green \"npm run dev -w @sync/shared\" \"npm run dev -w @sync/server\" \"npm run dev -w web\"",
+    "build": "npm run build -w @sync/shared && npm run build -w @sync/server && npm run build -w web",
+    "start": "concurrently -k -n server,web \"npm run start -w @sync/server\" \"npm run start -w web\"",
+    "typecheck": "npm run build -w @sync/shared && npm run typecheck --workspaces && tsc -p tsconfig.tools.json",
+    "lint": "eslint .",
     "test": "npm run build -w @sync/shared && vitest run",
-    "media:demo": "node scripts/generate-demo.mjs"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:docker:e2e": "playwright test -c playwright.docker.config.ts",
+    "test:deployment": "node --test tests/deployment/smoke.test.mjs",
+    "media:demo": "node scripts/generate-demo.mjs",
+    "predev": "npm run media:demo",
+    "prebuild": "npm run media:demo",
+    "test:browsers": "playwright test -c playwright.browsers.config.ts"
   },
   "repository": {
     "type": "git",
@@ -19,14 +30,26 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/Sake14/SYNC/issues"
   },
   "homepage": "https://github.com/Sake14/SYNC#readme",
   "devDependencies": {
-    "@types/node": "^22.20.5",
-    "typescript": "^5.9.3",
-    "vitest": "^5.0.3"
+    "@eslint/js": "9.39.5",
+    "@playwright/test": "1.64.0",
+    "@types/node": "22.20.5",
+    "concurrently": "9.2.5",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.0",
+    "globals": "16.5.0",
+    "jsqr": "1.4.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.1",
+    "vitest": "5.0.3"
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10"
   }
 }

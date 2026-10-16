@@ -1,0 +1,27 @@
+{
+	admin localhost:2019
+	auto_https off
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 120s
+			idle 2m
+		}
+	}
+}
+
+import /etc/caddy/routes.caddy
+
+http://:80 {
+	import sync_routes
+}
+
+# Container-only readiness probe checks both Next.js and the backend.
+http://:8081 {
+	handle /health {
+		reverse_proxy web:3000 {
+			rewrite /api/health
+		}
+	}
+	respond 404
+}
