@@ -10,8 +10,7 @@ Zustand, Tailwind CSS, nanoid, qrcode), Apache-2.0 (class-variance-authority)
 и ISC (lucide-react), BSD-2-Clause (dotenv). Инструменты разработки и их лицензии
 также записаны в lock-файле; Playwright и TypeScript используют Apache-2.0.
 
-При изменении зависимостей обновляйте перечень. Источник собственного переноса:
-[ORIGIN.md](ORIGIN.md).
+При изменении зависимостей обновляйте перечень.
 
 В таблицу входят optional binaries всех платформ; это не состав конкретного образа.
 Sharp использует Apache-2.0; платформенные libvips-компоненты имеют LGPL-3.0-or-later
